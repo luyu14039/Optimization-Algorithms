@@ -1,0 +1,65 @@
+# CompilerName=msvcpp170
+# Mode=optim
+ninja_required_version = 1.3
+
+# Basic folders
+root = .
+builddir = $root\build\win64
+matlabdir = D:\Matlab\fulll
+startdir = D:\GIT_resp\Optimization-Algorithms\po\function
+
+# Toolchain information
+cc = cl
+cxx = cl
+linker = link
+linkerxx = link
+
+cflags =  /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /utf-8 /I "$root" /I "$startdir" /I "$matlabdir\toolbox\gpucoder\src\gpucoderrt\export\include\gpucoderrt" /I "$matlabdir\sys\cuda\win64\cuda\include" /I "$root\interface" /I "$matlabdir\extern\include" /I "." -DMW_CUDA_ARCH=890 -DMW_GPU_MEMORY_DEBUG -DMW_GPU_MEMORY_MANAGER -DMODEL=parrot_optimizer_animated_mex -DMW_NEEDS_VERSION_H  
+
+cxxflags =   /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /utf-8 /I "$root" /I "$startdir" /I "$matlabdir\toolbox\gpucoder\src\gpucoderrt\export\include\gpucoderrt" /I "$matlabdir\sys\cuda\win64\cuda\include" /I "$root\interface" /I "$matlabdir\extern\include" /I "." -DMW_CUDA_ARCH=890 -DMW_GPU_MEMORY_DEBUG -DMW_GPU_MEMORY_MANAGER -DMODEL=parrot_optimizer_animated_mex -DMW_NEEDS_VERSION_H  
+
+ldflags =  -Xlinker /nologo -Xlinker /DLL -L"$matlabdir\extern\lib\win64\microsoft" libmx.lib libmex.lib libmat.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib libMatlabDataArray.lib libMatlabEngine.lib   -L"$matlabdir\sys\cuda\win64\cuda\lib\x64" -L"$matlabdir\bin\win64" libemlrt.lib libcovrt.lib libut.lib libmwmathutil.lib -L"$matlabdir\lib\win64" gpucoderrt.lib -arch sm_89 -I"$matlabdir\sys\cuda\win64\cuda\include" -lcublas -lcusolver -lcufft -lcurand -lcusparse -Xnvlink -w  -Wno-deprecated-gpu-targets -Xlinker /NODEFAULTLIB:libcmt.lib
+
+linkobjs = 
+
+# Build Rules
+rule cc
+    command = $cc $cflags $in /Fo$out
+
+rule cxx
+    command = $cxx $cxxflags $in /Fo$out
+
+rule link
+    command = $linker @$out.rsp $linkobjs $ldflags
+    rspfile = $out.rsp
+    rspfile_content = $in
+
+rule linkxx
+    command = $linkerxx $in $linkobjs $ldflags
+
+cudac = nvcc
+linkercuda = nvcc
+
+cudaflags =  -c -rdc=true -Wno-deprecated-gpu-targets -Xcompiler "/wd 4819" -Xcompiler "/MD" -Xcudafe "--display_error_number --diag_suppress=2381 --diag_suppress=unsigned_compare_with_zero --diag_suppress=useless_type_qualifier_on_return_type" -D_GNU_SOURCE -DMATLAB_MEX_FILE --no-exceptions -Xcompiler "/EHa" -noprof -ldir "$matlabdir/bin/win64" -Xcompiler "/utf-8" -I "$root" -I "$startdir" -I "$matlabdir\toolbox\gpucoder\src\gpucoderrt\export\include\gpucoderrt" -I "$matlabdir\sys\cuda\win64\cuda\include" -I "$root\interface" -I "$matlabdir\extern\include" -I "." -DMW_CUDA_ARCH=890 -DMW_GPU_MEMORY_DEBUG -DMW_GPU_MEMORY_MANAGER -DMODEL=parrot_optimizer_animated_mex -DMW_NEEDS_VERSION_H  -arch sm_89 -I "$matlabdir/simulink/include" -I "$matlabdir/toolbox/shared/simtargets"
+rule cudac
+    command = $cudac $cudaflags $in -o $out
+
+rule linkcuda
+    command = $linkercuda $linkobjs $ldflags -o $out $in
+
+# Build
+build $builddir\MWLaunchParametersUtilities.obj : cudac $root\MWLaunchParametersUtilities.cpp
+build $builddir\parrot_optimizer_animated_data.obj : cudac $root\parrot_optimizer_animated_data.cu
+build $builddir\rt_nonfinite.obj : cudac $root\rt_nonfinite.cu
+build $builddir\parrot_optimizer_animated_initialize.obj : cudac $root\parrot_optimizer_animated_initialize.cu
+build $builddir\parrot_optimizer_animated_terminate.obj : cudac $root\parrot_optimizer_animated_terminate.cu
+build $builddir\parrot_optimizer_animated.obj : cudac $root\parrot_optimizer_animated.cu
+build $builddir\_coder_parrot_optimizer_animated_api.obj : cudac $root\interface\_coder_parrot_optimizer_animated_api.cu
+build $builddir\_coder_parrot_optimizer_animated_mex.obj : cudac $root\interface\_coder_parrot_optimizer_animated_mex.cu
+build $builddir\eml_mtimes_helper.obj : cudac $root\eml_mtimes_helper.cu
+build $builddir\parrot_optimizer_animated_emxutil.obj : cudac $root\parrot_optimizer_animated_emxutil.cu
+build $builddir\_coder_parrot_optimizer_animated_info.obj : cxx $root\interface\_coder_parrot_optimizer_animated_info.cpp
+build $builddir\cpp_mexapi_version.obj : cudac $root\cpp_mexapi_version.cpp
+
+# Link
+build $root\parrot_optimizer_animated_mex.mexw64 : linkcuda $builddir\MWLaunchParametersUtilities.obj $builddir\parrot_optimizer_animated_data.obj $builddir\rt_nonfinite.obj $builddir\parrot_optimizer_animated_initialize.obj $builddir\parrot_optimizer_animated_terminate.obj $builddir\parrot_optimizer_animated.obj $builddir\_coder_parrot_optimizer_animated_api.obj $builddir\_coder_parrot_optimizer_animated_mex.obj $builddir\eml_mtimes_helper.obj $builddir\parrot_optimizer_animated_emxutil.obj $builddir\_coder_parrot_optimizer_animated_info.obj $builddir\cpp_mexapi_version.obj 
